@@ -28,9 +28,10 @@ _LIVE_STREAM_ENDPOINT = "https://mediation-tv.orange.fr/all/api-gw/live/v3/auth/
 _CATCHUP_STREAM_ENDPOINT = "https://mediation-tv.orange.fr/all/api-gw/catchup/v4/auth/accountToken/applications/PC/videos/{stream_id}/stream?terminalModel=WEB_PC&terminalId="
 
 _STREAM_LOGO_URL = "https://proxymedia.woopic.com/api/v1/images/2090{path}"
-_LIVE_HOMEPAGE_URL = "https://chaines-tv.orange.fr/"
+_LIVE_HOMEPAGE_URL = "https://chaines-tv.orange.fr"
 _CATCHUP_VIDEO_URL = "https://replay.orange.fr/videos/{stream_id}"
 _LOGIN_URL = "https://login.orange.fr"
+_ORANGE_TV_URL = "https://tv.orange.fr"
 
 
 class AbstractOrangeProvider(AbstractProvider, ABC):
@@ -42,19 +43,22 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
 
     def get_live_stream_info(self, stream_id: str) -> dict:
         """Get live stream info."""
-        auth_url = _LIVE_HOMEPAGE_URL
-        return self._get_stream_info(auth_url, _LIVE_STREAM_ENDPOINT, stream_id)
+        return self._get_stream_info(_LIVE_STREAM_ENDPOINT, stream_id)
 
     def get_catchup_stream_info(self, stream_id: str) -> dict:
         """Get catchup stream info."""
-        auth_url = _CATCHUP_VIDEO_URL.format(stream_id=stream_id)
-        return self._get_stream_info(auth_url, _CATCHUP_STREAM_ENDPOINT, stream_id)
+        return self._get_stream_info(_CATCHUP_STREAM_ENDPOINT, stream_id)
 
     def get_streams(self) -> list:
         """Load stream data from Orange and convert it to JSON-STREAMS format."""
+        tv_token, tv_token_expires, wassup = self._retrieve_auth_data()
+        headers = {"tv_token": f"Bearer {tv_token}", "Cookie": f"wassup={wassup}"}
+        res = request("GET", _ORANGE_TV_URL, headers=headers)
+        packages = json.loads(re.search('"packages":(\[.*?\])', res.text).group(1))
+        log(f"Packages : {packages}", xbmc.LOGINFO)
+
         channels = request_json(_CHANNELS_ENDPOINT, default={"channels": {}})["channels"]
         channels.sort(key=lambda channel: channel["displayOrder"])
-
         log(f"{len(channels)} channels found", xbmc.LOGINFO)
 
         return [
@@ -66,7 +70,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
                 "stream": build_addon_url(f"/stream/live/{channel['idEPG']}"),
                 "group": [group_name for group_name in self.groups if int(channel["idEPG"]) in self.groups[group_name]],
             }
-            for channel in channels
+            for channel in channels if any(package in channel['packages'] for package in packages)
         ]
 
     def get_epg(self) -> dict:
@@ -198,9 +202,9 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
             for video in videos
         ]
 
-    def _get_stream_info(self, auth_url: str, stream_endpoint: str, stream_id: str) -> dict:
+    def _get_stream_info(self, stream_endpoint: str, stream_id: str) -> dict:
         """Load stream info from Orange."""
-        tv_token, tv_token_expires, wassup = self._retrieve_auth_data(auth_url)
+        tv_token, tv_token_expires, wassup = self._retrieve_auth_data()
 
         try:
             stream_endpoint_url = stream_endpoint.format(stream_id=stream_id)
@@ -253,7 +257,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
         log(stream_info, xbmc.LOGDEBUG)
         return stream_info
 
-    def _retrieve_auth_data(self, auth_url: str, login: str = None, password: str = None) -> (str, str, str):
+    def _retrieve_auth_data(self) -> (str, str, str):
         """Retreive auth data from Orange (tv token and wassup cookie)."""
         provider_session_data = get_addon_setting("provider.session_data", dict)
         tv_token, tv_token_expires, wassup = (
@@ -268,11 +272,11 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
                 session.headers["Cookie"] = f"wassup={wassup}"
 
             try:
-                response = request("GET", f"{_LIVE_HOMEPAGE_URL}token", s=session)
+                response = request("GET", f"{_LIVE_HOMEPAGE_URL}/token", s=session)
             except RequestException:
                 log("Login required", xbmc.LOGINFO)
                 self._login(session)
-                response = request("GET", f"{_LIVE_HOMEPAGE_URL}token", s=session)
+                response = request("GET", f"{_LIVE_HOMEPAGE_URL}/token", s=session)
 
             tv_token = response.json()
             tv_token_expires = datetime.utcnow().timestamp() + 30 * 60

@@ -36,6 +36,9 @@ def create_list_item(item_data: dict, is_folder: bool = False) -> ListItem:
         if "plot" in item_info_data:
             video_info_tag.setPlot(item_info_data.get("plot"))
 
+        if "premiered" in item_info_data:
+            video_info_tag.setPremiered(item_info_data.get("premiered"))
+
         if "year" in item_info_data:
             video_info_tag.setYear(item_info_data.get("year"))
 
