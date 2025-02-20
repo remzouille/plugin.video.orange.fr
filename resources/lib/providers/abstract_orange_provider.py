@@ -55,6 +55,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
         headers = {"tv_token": f"Bearer {tv_token}", "Cookie": f"wassup={wassup}"}
         res = request("GET", _ORANGE_TV_URL, headers=headers)
         packages = json.loads(re.search('"packages":(\[.*?\])', res.text).group(1))
+        set_addon_setting("provider.packages", packages)
         log(f"Packages : {packages}", xbmc.LOGINFO)
 
         channels = request_json(_CHANNELS_ENDPOINT, default={"channels": {}})["channels"]
@@ -139,6 +140,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
 
     def _get_catchup_channels(self) -> list:
         """Load available catchup channels."""
+        packages = get_addon_setting("provider.packages", list)
         channels = request_json(_CATCHUP_CHANNELS_ENDPOINT, default=[])
 
         return [
@@ -148,7 +150,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
                 "path": build_addon_url(f"/catchup/{channel['id']}"),
                 "art": {"thumb": channel["logos"]["ref_millenials_partner_white_logo"]},
             }
-            for channel in channels
+            for channel in channels if any(package in channel['packages'] for package in packages)
         ]
 
     def _get_catchup_categories(self, channel_id: str) -> list:

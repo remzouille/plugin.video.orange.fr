@@ -12,7 +12,7 @@ import xbmcgui
 ADDON = xbmcaddon.Addon()
 ADDON_ID = ADDON.getAddonInfo("id")
 
-T = TypeVar("T", str, int, bool, dict)
+T = TypeVar("T", str, int, bool, dict, list)
 
 
 class DRM(Enum):
@@ -47,7 +47,7 @@ def get_addon_setting(name: str, t: Type[T] = str) -> T:
     if t is int:
         return ADDON.getSettings().getInt(name)
 
-    if t is dict:
+    if t is dict or t is list:
         try:
             return json.loads(ADDON.getSettings().getString(name))
         except json.decoder.JSONDecodeError:
@@ -103,7 +103,7 @@ def set_addon_setting(name: str, value: T) -> None:
     if isinstance(value, int):
         value = str(value)
 
-    if isinstance(value, dict):
+    if isinstance(value, dict) or isinstance(value, list):
         value = json.dumps(value)
 
     ADDON.setSetting(name, value)
