@@ -57,7 +57,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
                 return
 
             wassup_expires = self.__pinia['wassup_expires']
-            if wassup_expires and wassup_expires > datetime.now().timestamp():
+            if not wassup_expires or wassup_expires > datetime.now().timestamp():
                 wassup = self.__pinia["wassup"]
                 headers = {"Cookie": f"wassup={wassup}"}
 
@@ -348,16 +348,14 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
         # log(f"videos : {videos}", xbmc.LOGINFO)
 
         if len(videos) == 1:
-            return self._get_catchup_video(
-                channel_id, category_id, article_id, videos[0]['events']['onClick']['track']['trackParams'][0]['value']
-            )
+            return self._get_catchup_video(channel_id, category_id, article_id, self._get_video_id(videos[0]))
 
         return [
             {
                 "is_folder": True,
                 "label": video["titleText"],
                 "path": build_addon_url(
-                    f"/catchup/{channel_id}/{category_id}/{article_id}/{video['events']['onClick']['track']['trackParams'][0]['value']}"
+                    f"/catchup/{channel_id}/{category_id}/{article_id}/{self._get_video_id(video)}"
                 ),
                 "art": {"poster": video["backgroundImageUrl"] + '|verifypeer=false'},
                 "info": {
@@ -396,6 +394,11 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
                 },
             }
         ]
+
+    def _get_video_id(self, video: dict) -> str:
+        for item in video['events']['onClick']['track']['trackParams']:
+            if item["key"] == "strip_item_id":
+                return item["value"]
 
     def _get_stream_info(self, stream_endpoint_url: str, start: float = 0) -> dict:
         """Load stream info from Orange."""
