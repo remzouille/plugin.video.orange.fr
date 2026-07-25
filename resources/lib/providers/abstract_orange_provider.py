@@ -213,6 +213,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
 
         epg = {}
 
+        livecontrol = get_addon_setting("provider.live") == "livecontrol"
         for program in programs:
             if program["channelId"] not in epg:
                 epg[program["channelId"]] = []
@@ -247,9 +248,10 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
                     "description": program["synopsis"],
                     "genre": program["genre"] if program["genreDetailed"] is None else program["genreDetailed"],
                     "image": image,
-                    "stream": build_addon_url(f'/stream/live/{program["externalId"]}|{program["diffusionDate"]}'),
                 }
             )
+            if livecontrol:
+                epg[program["channelId"]][-1]["stream"] = build_addon_url(f'/stream/live/{program["externalId"]}|{program["diffusionDate"]}')
 
         return epg
 

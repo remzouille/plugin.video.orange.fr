@@ -1,6 +1,7 @@
 """Helpers for Kodi GUI."""
 
 from xbmcgui import ListItem
+from lib.utils.request import get_random_ua
 
 
 def create_list_item(item_data: dict, is_folder: bool = False) -> ListItem:
@@ -53,6 +54,10 @@ def create_play_item(stream_info: dict = None, inputstream_addon: str = "") -> L
 
     play_item.setProperty("inputstream", inputstream_addon)
     play_item.setProperty("inputstream.adaptive.manifest_type", stream_info.get("protocol"))
+
+    user_agent = get_random_ua()
+    play_item.setProperty('inputstream.adaptive.manifest_headers', f'User-Agent={user_agent}')
+    play_item.setProperty('inputstream.adaptive.stream_headers', f'User-Agent={user_agent}')
 
     # https://github.com/xbmc/inputstream.adaptive/issues/574
     start = stream_info['start']
