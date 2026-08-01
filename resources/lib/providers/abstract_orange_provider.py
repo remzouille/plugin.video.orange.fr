@@ -422,12 +422,12 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
 
     def _format_stream_info(self, stream: dict, start: float) -> dict:
         """Compute stream info."""
-        headers = self._get_auth_headers()
+        auth_headers = self._get_auth_headers()
         protectionData = stream.get("protectionData") or stream.get("protectionDatas")
         path = stream.get("streamURL") or stream.get("url")
 
         license_server_url = (
-            f'{self.__config["TV_GW_BASE_URL"]}/{self.__config["STREAM_LICENSE_AUTH_URL"]}'
+            f'{self.__config["TV_GW_BASE_URL"]}{self.__config["STREAM_LICENSE_AUTH_URL"]}'
             if stream.get("url") is None else ""
         )
 
@@ -444,8 +444,15 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
                 "license_key": "|".join(
                     {
                         "licence_server_url": license_server_url,
-                        "headers": urlencode({"Content-Type": "", **headers}),
-                        "post_data": "R{SSM}",
+                        "headers": urlencode(
+                            {
+                                "Content-Type": "",
+                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0",
+                                "Origin": "https://tv.orange.fr",
+                                "Referer": "https://tv.orange.fr/",
+                                "Connection": "close",
+                                **auth_headers}),
+                        "post_data": "R{SSM}", # SSM:placeholder to transport the DRM Challenge
                         "response_data": "",
                     }.values()
                 ),
