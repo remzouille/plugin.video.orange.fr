@@ -258,6 +258,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
     def get_catchup_items(self, levels: List[str]) -> list:
         """Return a list of directory items for the specified levels."""
         depth = len(levels)
+        log(f"Catchup item level: {depth}", xbmc.LOGDEBUG)
         item_getters = [
             self._get_catchup_channels,
             self._get_catchup_categories,
@@ -319,7 +320,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
             f'?{self.__config["PARAMS"]}&channelId={channel_id}&categoryId={category_id}'
         )
         articles = request_json(url, headers=headers)['page']['sections'][1]['items']
-        # log(f"articles : {articles}", xbmc.LOGINFO)
+        log(f"Number of articles : {len(articles)}", xbmc.LOGDEBUG)
 
         table = []
         for article in articles:
@@ -333,7 +334,8 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
                     "is_folder": True,
                     "label": article["titleText"],
                     "path": build_addon_url(path),
-                    "art": {"poster": article["backgroundImageUrl"] + '|verifypeer=false'},
+                    # Some articles do not have background images, the channel logo is used instead.
+                    "art": {"poster": article.get("backgroundImageUrl", article.get("iconImageUrl")) + '|verifypeer=false'},
                 }
             )
 
