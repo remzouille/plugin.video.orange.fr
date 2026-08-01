@@ -334,7 +334,8 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
                     "is_folder": True,
                     "label": article["titleText"],
                     "path": build_addon_url(path),
-                    "art": {"poster": article["backgroundImageUrl"] + '|verifypeer=false'},
+                    # Some articles do not have background images, the channel logo is used instead.
+                    "art": {"poster": article.get("backgroundImageUrl", article.get("iconImageUrl")) + '|verifypeer=false'},
                 }
             )
 
