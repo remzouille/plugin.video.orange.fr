@@ -124,7 +124,8 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
         }
 
         try:
-            request("POST", f"{IDME_URL}/api/access", data='{}', session=session)
+            data = json.dumps({"allowRedirect": False, "isReinit": True})
+            request("POST", f"{IDME_URL}/api/access", data=data, session=session)
         except RequestException:
             log("Error while authenticating (access)", xbmc.LOGWARNING)
             return
