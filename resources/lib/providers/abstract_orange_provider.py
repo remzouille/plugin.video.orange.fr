@@ -270,6 +270,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
     def get_catchup_items(self, levels: List[str]) -> list:
         """Return a list of directory items for the specified levels."""
         depth = len(levels)
+        log(f"Catchup item level: {depth}", xbmc.LOGDEBUG)
         item_getters = [
             self._get_catchup_channels,
             self._get_catchup_categories,
@@ -331,7 +332,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
             f'?{self.__config["PARAMS"]}&channelId={channel_id}&categoryId={category_id}'
         )
         articles = request_json(url, headers=headers)['page']['sections'][1]['items']
-        # log(f"articles : {articles}", xbmc.LOGINFO)
+        log(f"Number of articles : {len(articles)}", xbmc.LOGDEBUG)
 
         table = []
         for article in articles:
@@ -345,7 +346,8 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
                     "is_folder": True,
                     "label": article["titleText"],
                     "path": build_addon_url(path),
-                    "art": {"poster": article["backgroundImageUrl"] + '|verifypeer=false'},
+                    # Some articles do not have background images, the channel logo is used instead.
+                    "art": {"poster": article.get("backgroundImageUrl", article.get("iconImageUrl")) + '|verifypeer=false'},
                 }
             )
 
@@ -432,12 +434,12 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
 
     def _format_stream_info(self, stream: dict, start: float) -> dict:
         """Compute stream info."""
-        headers = self._get_auth_headers()
+        auth_headers = self._get_auth_headers()
         protectionData = stream.get("protectionData") or stream.get("protectionDatas")
         path = stream.get("streamURL") or stream.get("url")
 
         license_server_url = (
-            f'{self.__config["TV_GW_BASE_URL"]}/{self.__config["STREAM_LICENSE_AUTH_URL"]}'
+            f'{self.__config["TV_GW_BASE_URL"]}{self.__config["STREAM_LICENSE_AUTH_URL"]}'
             if stream.get("url") is None else ""
         )
 
@@ -454,8 +456,15 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
                 "license_key": "|".join(
                     {
                         "licence_server_url": license_server_url,
-                        "headers": urlencode({"Content-Type": "", **headers}),
-                        "post_data": "R{SSM}",
+                        "headers": urlencode(
+                            {
+                                "Content-Type": "",
+                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0",
+                                "Origin": "https://tv.orange.fr",
+                                "Referer": "https://tv.orange.fr/",
+                                "Connection": "close",
+                                **auth_headers}),
+                        "post_data": "R{SSM}", # SSM:placeholder to transport the DRM Challenge
                         "response_data": "",
                     }.values()
                 ),

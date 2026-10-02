@@ -1,8 +1,9 @@
 """Helpers for Kodi GUI."""
 
+import xbmc
 from xbmcgui import ListItem
 from lib.utils.request import get_random_ua
-
+from lib.utils.kodi import log
 
 def create_list_item(item_data: dict, is_folder: bool = False) -> ListItem:
     """Create a list item from data."""
@@ -45,8 +46,10 @@ def create_list_item(item_data: dict, is_folder: bool = False) -> ListItem:
 
 def create_play_item(stream_info: dict = None, inputstream_addon: str = "") -> ListItem:
     """Create a play item from stream data."""
+    log("[create_play_item] Creating play item", xbmc.LOGDEBUG)
     if stream_info is None:
         stream_info = {}
+    log(f"stream_info: {stream_info}", xbmc.LOGDEBUG)
 
     play_item = ListItem(path=stream_info.get("path"))
     play_item.setContentLookup(False)
@@ -56,6 +59,7 @@ def create_play_item(stream_info: dict = None, inputstream_addon: str = "") -> L
     play_item.setProperty("inputstream.adaptive.manifest_type", stream_info.get("protocol"))
 
     user_agent = get_random_ua()
+    log(f"[create_play_item] Chosen User-Agent: {user_agent}", xbmc.LOGDEBUG)
     play_item.setProperty('inputstream.adaptive.manifest_headers', f'User-Agent={user_agent}')
     play_item.setProperty('inputstream.adaptive.stream_headers', f'User-Agent={user_agent}')
 
@@ -64,6 +68,7 @@ def create_play_item(stream_info: dict = None, inputstream_addon: str = "") -> L
     InfoTagVideo = play_item.getVideoInfoTag()
     InfoTagVideo.setResumePoint(start, 1)
 
+    # https://github.com/xbmc/inputstream.adaptive/wiki/Integration-DRM-(old)
     drm_config = stream_info.get("drm_config", {})
     keys = ["license_type", "license_key", "license_data", "server_certificate", "license_flags", "pre_init_data"]
 
