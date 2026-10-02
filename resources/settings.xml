@@ -18,6 +18,8 @@
     <setting id="provider.use_credentials" label="30205" help="30206" type="bool" default="false"/>
     <setting id="provider.username" label="30207" help="30208" enable="eq(-1,true)" type="text" default=""/>
     <setting id="provider.password" label="30209" help="30210" enable="eq(-2,true)" type="text" default="" option="hidden"/>
+    <setting type="lsep"/>
+    <setting id="provider.refresh" label="30213" help="30214" type="action" action="RunScript(plugin.video.orange.fr)" />
   </category>
 
   <!-- Proxy -->

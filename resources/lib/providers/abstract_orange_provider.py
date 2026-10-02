@@ -9,6 +9,7 @@ from typing import List
 from urllib.parse import urlencode
 
 import xbmc
+import xbmcgui
 import xbmcvfs
 import xbmcaddon
 
@@ -113,6 +114,16 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
 
             with xbmcvfs.File(config_file, 'w') as f:
                 json.dump(self.__config, f)
+
+            # refresh IPTV Manager
+            xbmc.executebuiltin('RunScript(service.iptv.manager, refresh)', True)
+            xbmc.sleep(200)
+
+            # wait for IPTV Manager settings dialog and close it
+            WINDOW_DIALOG_ADDON_SETTINGS = 10140
+            while not xbmcgui.getCurrentWindowDialogId() == WINDOW_DIALOG_ADDON_SETTINGS:
+                xbmc.sleep(100)
+            xbmc.executebuiltin(f'Dialog.Close({WINDOW_DIALOG_ADDON_SETTINGS})')
 
     def _login(self):
         """Login to Orange to get wassup cookie."""
