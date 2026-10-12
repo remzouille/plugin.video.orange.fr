@@ -433,7 +433,8 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
     def _format_stream_info(self, stream: dict, start: float) -> dict:
         """Compute stream info."""
         headers = self._get_auth_headers()
-        protectionData = stream.get("protectionData") or stream.get("protectionDatas")
+        protectionData = stream.get("protectionData") or stream.get("protectionDatas") or []
+        # log(f"protectionData : {protectionData}", xbmc.LOGINFO)
         path = stream.get("streamURL") or stream.get("url")
 
         license_server_url = (
