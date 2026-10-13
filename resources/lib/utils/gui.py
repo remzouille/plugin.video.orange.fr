@@ -1,6 +1,7 @@
 """Helpers for Kodi GUI."""
 
 from xbmcgui import ListItem
+
 from lib.utils.request import get_random_ua
 
 

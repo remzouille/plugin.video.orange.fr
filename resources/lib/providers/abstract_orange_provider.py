@@ -121,7 +121,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
 
             # wait for IPTV Manager settings dialog and close it
             WINDOW_DIALOG_ADDON_SETTINGS = 10140
-            while not xbmcgui.getCurrentWindowDialogId() == WINDOW_DIALOG_ADDON_SETTINGS:
+            while xbmcgui.getCurrentWindowDialogId() != WINDOW_DIALOG_ADDON_SETTINGS:
                 xbmc.sleep(100)
             xbmc.executebuiltin(f'Dialog.Close({WINDOW_DIALOG_ADDON_SETTINGS})')
 
@@ -263,7 +263,9 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
                 }
             )
             if livecontrol:
-                epg[program["channelId"]][-1]["stream"] = build_addon_url(f'/stream/live/{program["externalId"]}|{program["diffusionDate"]}')
+                epg[program["channelId"]][-1]["stream"] = build_addon_url(
+                    f'/stream/live/{program["externalId"]}|{program["diffusionDate"]}'
+                )
 
         return epg
 
