@@ -347,7 +347,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
                     "is_folder": True,
                     "label": article["titleText"],
                     "path": build_addon_url(path),
-                    "art": {"poster": article["backgroundImageUrl"] + '|verifypeer=false'},
+                    "art": {"poster": self._get_item_background_image(article) + '|verifypeer=false'},
                 }
             )
 
@@ -357,7 +357,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
         """Return a list of catchup videos for the specified channel id, category id and article id."""
         headers = self._get_auth_headers()
         url = (
-            f'{self.__config["TV_GW_BASE_URL"]}/{self.__config["BFF_REPLAY_FIP_URL"]}/fip-replay-serial'
+            f'{self.__config["TV_GW_BASE_URL"]}/{self.__config["BFF_REPLAY_SERIAL_FIP_URL"]}'
             f'?{self.__config["PARAMS"]}&groupId={article_id}'
         )
         videos = request_json(url, headers=headers)['page']['sections'][2]['items']
@@ -373,7 +373,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
                 "path": build_addon_url(
                     f"/catchup/{channel_id}/{category_id}/{article_id}/{self._get_video_id(video)}"
                 ),
-                "art": {"poster": video["backgroundImageUrl"] + '|verifypeer=false'},
+                "art": {"poster": self._get_item_background_image(video) + '|verifypeer=false'},
                 "info": {
                     "plot": f'[B]{video["titleText"]}[/B]\n{video["mainText"]["text"]}',
                 },
@@ -385,25 +385,27 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
         """Return a catchup video for the article id."""
         headers = self._get_auth_headers()
         url = (
-            f'{self.__config["TV_GW_BASE_URL"]}/{self.__config["BFF_REPLAY_FIP_URL"]}/fip-replay-unit'
-            f'?{self.__config["PARAMS"]}&videoId={video_id}'
+            f'{self.__config["TV_GW_BASE_URL"]}/{self.__config["REPLAY_PROGRAM_URL"]}/{video_id}'
+            f'?{self.__config["PARAMS"]}'
         )
-        video = request_json(url, headers=headers)['page']['sections']
+        response = request_json(url, headers=headers)
+        # log(f"response : {response}", xbmc.LOGINFO)
+        video = response["channels"][0]
         # log(f"video : {video}", xbmc.LOGINFO)
 
         return [
             {
                 "is_folder": False,
-                "label": video[1]['title']['text'],
+                "label": video["programs"][0]["a11yText"],
                 "path": build_addon_url(f"/stream/catchup/{video_id}"),
-                "art": {"poster": video[1]["backgroundImageUrl"] + '|verifypeer=false'},
+                "art": {"poster": self._get_item_background_image(video) + '|verifypeer=false'},
                 "info": {
-                    # "duration": int(video["duration"]) * 60,
-                    # "genres": video["genres"],
+                    "duration": int(video["programs"][0]["duration"]) // 1000,
+                    "genres": [video["programs"][0]["information"]["a11yText"]],
                     "plot": (
-                        f'[B]{video[1]["information"]["text"]}[/B]\n'
-                        f'[I]{video[1]["footNote"]}[/I]\n'
-                        f'{video[2]["items"][0]["paragraphs"][0]["text"]}'
+                        f'[B]{video["programs"][0]["titleText"]}[/B]\n'
+                        f'[I]{video["programs"][0]["information"]["text"]}[/I]\n'
+                        f'{video["programs"][0]["overlayInfo"]["mainText"].get("text", "")}'
                     ),
                     # "premiered": datetime.fromtimestamp(int(video["broadcastDate"]) / 1000).strftime("%Y-%m-%d"),
                     # "year": int(video["productionDate"]),
@@ -412,9 +414,10 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
         ]
 
     def _get_video_id(self, video: dict) -> str:
-        for item in video['events']['onClick']['track']['trackParams']:
-            if item["key"] == "strip_item_id":
-                return item["value"]
+        return video['events']['onClick']['navigate']['route'].replace("/lecture/replay/videos/", "")
+
+    def _get_item_background_image(self, item: dict) -> str:
+        return item.get("backgroundImageUrl") or item.get("iconImageUrl") or item["logos"][0]["logoImageUrl"]
 
     def _get_stream_info(self, stream_endpoint_url: str, start: float = 0) -> dict:
         """Load stream info from Orange."""
