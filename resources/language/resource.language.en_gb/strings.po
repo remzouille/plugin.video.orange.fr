@@ -96,6 +96,14 @@ msgctxt "#30210"
 msgid "Help 30210"
 msgstr ""
 
+msgctxt "#30213"
+msgid "Refresh provider"
+msgstr ""
+
+msgctxt "#30214"
+msgid "Refresh provider"
+msgstr ""
+
 # Proxy settings (from 30300 to 30399)
 
 msgctxt "#30300"
