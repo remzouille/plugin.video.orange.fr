@@ -100,7 +100,7 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
         }
         live_endpoint = get_addon_setting("provider.live")
 
-        if not xbmcvfs.exists(config_file) or self.__config["LIVE_KEY"] != live_keys[live_endpoint]:
+        if not xbmcvfs.exists(config_file) or self.__config.get("LIVE_KEY") != live_keys[live_endpoint]:
             self.__config["LIVE_KEY"] = live_keys[live_endpoint]
 
             self.__config["PARAMS"] = "&".join([
@@ -121,9 +121,11 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
 
             # wait for IPTV Manager settings dialog and close it
             WINDOW_DIALOG_ADDON_SETTINGS = 10140
-            while xbmcgui.getCurrentWindowDialogId() != WINDOW_DIALOG_ADDON_SETTINGS:
+            for _ in range(50):  # 5 s max: the dialog never opens when called from IPTV Manager
+                if xbmcgui.getCurrentWindowDialogId() == WINDOW_DIALOG_ADDON_SETTINGS:
+                    xbmc.executebuiltin(f'Dialog.Close({WINDOW_DIALOG_ADDON_SETTINGS})')
+                    break
                 xbmc.sleep(100)
-            xbmc.executebuiltin(f'Dialog.Close({WINDOW_DIALOG_ADDON_SETTINGS})')
 
     def _login(self):
         """Login to Orange to get wassup cookie."""
