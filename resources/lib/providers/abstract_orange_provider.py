@@ -212,6 +212,17 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
             for channel in channels if channel['subscribed'] and channel["externalId"] != 'livetv_acces_limite_ctv'
         ]
 
+    def _get_subscribed_epg_ids(self) -> set:
+        """Return EPG ids of subscribed channels (empty set on failure)."""
+        headers = self._get_auth_headers()
+        url = f'{self.__config["TV_GW_BASE_URL"]}/{self.__config["LIVE_SERVICE_PLAN_URL"]}?{self.__config["PARAMS"]}'
+        response = request_json(url, headers=headers, default={}) or {}
+        return {
+            str(channel["epgId"])
+            for channel in response.get("channels", [])
+            if channel.get("subscribed") and channel.get("externalId") != 'livetv_acces_limite_ctv'
+        }
+
     def get_epg(self) -> dict:
         """Load EPG data from Orange and convert it to JSON-EPG format."""
         past_days_to_display = get_global_setting("epg.pastdaystodisplay", int)
@@ -222,6 +233,15 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
 
         programs = self._get_programs(start_day, days_to_display, self.chunks_per_day, self.mco)
         log(f"{len(programs)} EPG entries found", xbmc.LOGINFO)
+
+        subscribed = self._get_subscribed_epg_ids()
+        if subscribed:
+            filtered = [program for program in programs if str(program["channelId"]) in subscribed]
+            if filtered:
+                programs = filtered
+                log(f"{len(programs)} EPG entries kept for {len(subscribed)} subscribed channels", xbmc.LOGINFO)
+            else:
+                log("No EPG entry matches subscribed channels, keeping all entries", xbmc.LOGWARNING)
 
         epg = {}
 
