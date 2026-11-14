@@ -18,8 +18,12 @@ from requests.exceptions import JSONDecodeError, RequestException
 
 from lib.exceptions import AuthenticationRequired, StreamDataDecodeError, StreamNotIncluded
 from lib.providers.abstract_provider import AbstractProvider
-from lib.utils.kodi import build_addon_url, get_addon_setting, get_drm, get_global_setting, log
+from lib.utils.kodi import build_addon_url, get_addon_setting, get_drm, get_global_setting, log, set_addon_setting
 from lib.utils.request import request, request_json
+
+# Android TV app 12.4.0 format: OTVP_Android_<version>_<manufacturer>_<model>=SMARTTV=<WVL1|WVL3>_<android>
+# Tested: "OTVP_Android_" prefix and WVL1 tag are required, manufacturer and model are not checked.
+TV_USER_AGENT = "OTVP_Android_12.4.0=SMARTTV=WVL1_14"
 
 
 WEBAPP_PUBLIC_URL = "https://tv.orange.fr"
@@ -178,11 +182,22 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
         if start < 1:
             start = 1
         live_key = self.__config["LIVE_KEY"]
+        extra_headers = {}
+        if get_addon_setting("provider.tv_profile", bool):
+            extra_headers = {"User-Agent": self._get_tv_user_agent()}
         url = (
             f'{self.__config["TV_GW_BASE_URL"]}/{self.__config[live_key]}/{stream_id_parts[0]}'
             f'?{self.__config["PARAMS"]}'
         )
-        return self._get_stream_info(url, start)
+        return self._get_stream_info(url, start, extra_headers)
+
+    def _get_tv_user_agent(self) -> str:
+        """Return the custom User-Agent."""
+        user_agent = get_addon_setting("provider.tv_user_agent")
+        if not user_agent:
+            user_agent = TV_USER_AGENT
+            set_addon_setting("provider.tv_user_agent", TV_USER_AGENT)
+        return user_agent
 
     def get_catchup_stream_info(self, stream_id: str) -> dict:
         """Get catchup stream info."""
@@ -419,9 +434,10 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
     def _get_item_background_image(self, item: dict) -> str:
         return item.get("backgroundImageUrl") or item.get("iconImageUrl") or item["logos"][0]["logoImageUrl"]
 
-    def _get_stream_info(self, stream_endpoint_url: str, start: float = 0) -> dict:
+    def _get_stream_info(self, stream_endpoint_url: str, start: float = 0, extra_headers: dict = None) -> dict:
         """Load stream info from Orange."""
-        headers = self._get_auth_headers()
+        extra_headers = extra_headers or {}
+        headers = {**self._get_auth_headers(), **extra_headers}
         try:
             res = request("GET", stream_endpoint_url, headers=headers)
             stream = res.json()
@@ -433,11 +449,13 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
         except JSONDecodeError as e:
             raise StreamDataDecodeError() from e
 
-        return self._format_stream_info(stream, start)
+        return self._format_stream_info(stream, start, extra_headers.get("User-Agent"))
 
-    def _format_stream_info(self, stream: dict, start: float) -> dict:
+    def _format_stream_info(self, stream: dict, start: float, user_agent: str = None) -> dict:
         """Compute stream info."""
         headers = self._get_auth_headers()
+        if user_agent:
+            headers["User-Agent"] = user_agent
         protectionData = stream.get("protectionData") or stream.get("protectionDatas") or []
         # log(f"protectionData : {protectionData}", xbmc.LOGINFO)
         path = stream.get("streamURL") or stream.get("url")
@@ -468,6 +486,8 @@ class AbstractOrangeProvider(AbstractProvider, ABC):
             },
             "start": start,
         }
+        if user_agent:
+            stream_info["user_agent"] = user_agent
 
         log(stream_info, xbmc.LOGDEBUG)
         return stream_info

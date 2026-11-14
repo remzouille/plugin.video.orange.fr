@@ -104,6 +104,14 @@ msgctxt "#30214"
 msgid "Refresh provider"
 msgstr ""
 
+msgctxt "#30215"
+msgid "Change User-Agent"
+msgstr ""
+
+msgctxt "#30217"
+msgid "User-Agent"
+msgstr ""
+
 # Proxy settings (from 30300 to 30399)
 
 msgctxt "#30300"
