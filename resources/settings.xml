@@ -14,6 +14,8 @@
     <setting id="provider.country" label="30201" help="30202" type="select" values="France" default="France"/>
     <setting id="provider.name" visible="eq(-1,France)" label="30203" help="30204" type="labelenum" values="OQEE by Free|Orange|Orange Caraïbe|Orange Réunion" default="Orange"/>
     <setting id="provider.live" visible="eq(-1,Orange)" label="30211" help="30212" type="labelenum" values="livecontrol|live" default="livecontrol"/>
+    <setting id="provider.tv_profile" label="30215" type="bool" default="false"/>
+    <setting id="provider.tv_user_agent" label="30217" enable="eq(-1,true)" type="text" default="OTVP_Android_12.4.0=SMARTTV=WVL1_14" subsetting="true"/>
     <setting type="lsep"/>
     <setting id="provider.use_credentials" label="30205" help="30206" type="bool" default="false"/>
     <setting id="provider.username" label="30207" help="30208" enable="eq(-1,true)" type="text" default=""/>

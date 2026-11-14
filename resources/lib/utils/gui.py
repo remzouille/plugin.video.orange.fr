@@ -1,5 +1,7 @@
 """Helpers for Kodi GUI."""
 
+from urllib.parse import quote
+
 from xbmcgui import ListItem
 
 from lib.utils.request import get_random_ua
@@ -57,11 +59,14 @@ def create_play_item(stream_info: dict = None, inputstream_addon: str = "") -> L
     play_item.setProperty("inputstream.adaptive.manifest_type", stream_info.get("protocol"))
 
     user_agent = get_random_ua()
+    if stream_info.get("user_agent"):
+        # Android TV UA contains "=": encode it for InputStream Adaptive header parsing
+        user_agent = quote(stream_info["user_agent"], safe="")
     play_item.setProperty('inputstream.adaptive.manifest_headers', f'User-Agent={user_agent}')
     play_item.setProperty('inputstream.adaptive.stream_headers', f'User-Agent={user_agent}')
 
     # https://github.com/xbmc/inputstream.adaptive/issues/574
-    start = stream_info['start']
+    start = stream_info.get('start', 0)
     InfoTagVideo = play_item.getVideoInfoTag()
     InfoTagVideo.setResumePoint(start, 1)
 
